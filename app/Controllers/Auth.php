@@ -6,52 +6,46 @@ use App\Models\UserModel;
 
 class Auth extends BaseController
 {
-    public function login()
-    {
-        helper('form');
+   public function login()
+{
+    helper(['form']);
 
-        if ($this->request->getMethod() === 'POST') {
+    if ($this->request->getMethod() == 'post') {
 
-            $username = trim($this->request->getPost('username'));
+        $username = $this->request->getPost('username');
+        $password = $this->request->getPost('password');
 
-            if ($username == '') {
-                return redirect()->back()->with('error', 'Username wajib diisi!');
-            }
+        $userModel = new \App\Models\UserModel();
 
-            $userModel = new UserModel();
+        $user = $userModel
+            ->where('username', $username)
+            ->first();
 
-            $user = $userModel->where('username', $username)->first();
-
-            // Jika user belum ada, buat otomatis
-            if (!$user) {
-
-                $role = ($username == 'admin') ? 'admin' : 'user';
-
-                $userModel->insert([
-                    'username' => $username,
-                    'role' => $role
-                ]);
-
-                $user = $userModel->where('username', $username)->first();
-            }
+        if ($user && password_verify($password, $user['password'])) {
 
             session()->set([
-                'id'       => $user['id'],
+                'id' => $user['id'],
                 'username' => $user['username'],
-                'role'     => $user['role'],
-                'login'    => true
+                'role' => $user['role'],
+                'logged_in' => true
             ]);
 
             if ($user['role'] == 'admin') {
+
                 return redirect()->to('/admin');
+
             }
 
             return redirect()->to('/');
+
         }
 
-        return view('auth/login');
+        return redirect()->back()
+            ->with('error', 'Username atau Password salah.');
     }
 
+    return view('auth/login');
+}
     public function logout()
     {
         session()->destroy();
